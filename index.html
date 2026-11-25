@@ -54,6 +54,30 @@
   @keyframes trav{from{stroke-dashoffset:.16}to{stroke-dashoffset:-1}}
   @keyframes travr{from{stroke-dashoffset:-1}to{stroke-dashoffset:.16}}
   .dimL{opacity:.07!important}
+  /* partículas que viajan de la causa al efecto (siguen activas aunque la red esté completa) */
+  #pts{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
+  .pd{position:absolute;left:0;top:0;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--c);offset-rotate:0deg;opacity:0;will-change:offset-distance,opacity;
+    animation:pdrun var(--du,2.6s) cubic-bezier(.45,0,.55,1) infinite;animation-delay:var(--de,0s);animation-play-state:paused;transition:opacity .4s calc(var(--dl,0s) + .7s)}
+  .pd.x{width:5px;height:5px;margin:-2.5px 0 0 -2.5px;box-shadow:none;animation-timing-function:linear}
+  .pd.on{opacity:1;animation-play-state:running}.pd.x.on{opacity:.85}
+  .pd.dimL,.pd.dimS{opacity:.06!important}
+  @keyframes pdrun{from{offset-distance:0%}to{offset-distance:100%}}
+  /* insignia giratoria de cada retroalimentación */
+  .fbb{opacity:0;transition:opacity .5s .6s;pointer-events:none}.fbb.on{opacity:1}.fbb.dimL,.fbb.dimS{opacity:.08!important}
+  .fbb circle{fill:#000;stroke:#fff;stroke-width:1.4}
+  .fbb .spin{transform-box:fill-box;transform-origin:center;animation:fbspin 3.2s linear infinite}
+  .fbb .ring{fill:none;stroke:#fff;stroke-opacity:.5;stroke-width:1.2;transform-box:fill-box;transform-origin:center;animation:fbring 2.4s ease-out infinite}
+  @keyframes fbspin{to{transform:rotate(360deg)}}
+  @keyframes fbring{0%{transform:scale(1);stroke-opacity:.6}100%{transform:scale(2.3);stroke-opacity:0}}
+  /* ola causal: un brillo recorre las tarjetas de izquierda (causas) a derecha (fenómeno) */
+  .wv{position:absolute;inset:-1px;border-radius:inherit;border:1.5px solid var(--c);box-shadow:0 0 22px -4px var(--c),inset 0 0 18px -8px var(--c);opacity:0;will-change:opacity;pointer-events:none;animation:wave 7s ease-in-out infinite;animation-delay:var(--wd,0s)}
+  @keyframes wave{0%,72%,100%{opacity:0}80%{opacity:.95}}
+  .node:not(.on) .wv{animation:none}
+  .tile svg{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+  .node:hover .tile svg{transform:scale(1.14) rotate(-6deg)}
+  .node.on .tile{animation:tilein .6s cubic-bezier(.3,1.5,.5,1) both;animation-delay:calc(var(--dl,0s) + .25s)}
+  @keyframes tilein{from{transform:scale(.4) rotate(-25deg);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.fbb .spin,.fbb .ring,.wv,.node.on .tile{animation:none!important}.pd{display:none}}
 
   .lane{display:none!important}
   /* enlaces entre ramas (conexiones reales que cruzan el mapa): salen por arriba/abajo de la tarjeta, con degradado entre los colores de las dos ramas */
@@ -751,7 +775,7 @@ function refresh(origin){
     if(n.base) [n.base,n.flow,n.arrow].forEach(x=>x&&x.classList.toggle("on",n.vis));
     n.mel.classList.toggle("open",n.open);
   });
-  let vx=0; xedges.forEach(x=>{ const on=x.s.vis&&x.t.vis; if(on) vx++; x.p.classList.toggle("on",on); });
+  let vx=0; xedges.forEach(x=>{ const on=x.s.vis&&x.t.vis; if(on) vx++; [x.p,x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("on",on)); });
   const el=$("#sX"); if(el) el.textContent=vx+"/"+xedges.length; const sn=$("#sN"); if(sn) sn.textContent=all.filter(n=>n.vis).length+"/"+all.length;
   updateLanes(); drawMini(); renderInsp(); applySelFocus(); const gh=$("#ghost"); if(gh) gh.classList.toggle("off",!(introStage===1&&!DATA.open)); document.body.classList.toggle("lite",all.filter(n=>n.vis&&n.base).length>6);
 }
@@ -779,6 +803,9 @@ function updateLanes(){
     const L=lanes[i]; L.style.left=(x0-22)+"px"; L.style.top=(y0-40)+"px"; L.style.width=(x1-x0+44)+"px"; L.style.height=(y1-y0+66)+"px"; L.classList.add("on");
   });
 }
+const PTS=document.createElement("div"); PTS.id="pts"; world.insertBefore(PTS,LK.nextSibling);
+function mkDot(d,c,x){ const p=document.createElement("i"); p.className="pd"+(x?" x":""); p.style.offsetPath=`path("${d}")`; p.style.setProperty("--c",c);
+  const du=x?3.6+Math.random()*1.6:2.3+Math.random()*.9; p.style.setProperty("--du",du.toFixed(2)+"s"); p.style.setProperty("--de",(-Math.random()*du).toFixed(2)+"s"); PTS.appendChild(p); return p; }
 all.forEach(n=>{
   const e=document.createElement("div");
   e.className=`node d${Math.min(n.depth,2)}${n.bridge?" bridge":""}${n.kids.length?" has":""}`; e.style.setProperty("--c",n.color); e.style.setProperty("--ink",ink(n.color));
@@ -786,7 +813,8 @@ all.forEach(n=>{
   e.style.width=n.w+"px"; e.style.height=n.h+"px"; e.style.left=n.x+"px"; e.style.top=(n.y-n.h/2)+"px";
   const p=n.parent||n; e.style.setProperty("--dx",(n.parent?p.x-(n.x+n.w):0)+"px"); e.style.setProperty("--dy",(p.y-n.y)+"px");
   const xb=n.xs.length?`<span class="xb" title="Conexiones con otras ramas">${icon("ArrowLeftRight",2.4)}${n.xs.length}</span>`:"";
-  e.innerHTML=`<div class="glare"></div><div class="wm">${icon(n.i,1.2)}</div><div class="tile">${icon(n.i)}</div><div class="txt"><span class="id">${n.depth===0?"FENÓMENO CENTRAL":"VAR "+n.code}${xb}${n.key==="hig"?`<span class="xb" title="Abre la evolución histórica">${icon("History",2.2)}historia</span>`:""}</span><span class="lb">${n.depth===0?n.t:n.s}</span></div>${n.kids.length?`<div class="cnt"><span>${n.kids.length}</span>${icon("ChevronLeft",2.4)}</div>`:""}`;
+  e.style.setProperty("--wd",((7-n.depth)*.38).toFixed(2)+"s");
+  e.innerHTML=`<div class="wv"></div><div class="glare"></div><div class="wm">${icon(n.i,1.2)}</div><div class="tile">${icon(n.i)}</div><div class="txt"><span class="id">${n.depth===0?"FENÓMENO CENTRAL":"VAR "+n.code}${xb}${n.key==="hig"?`<span class="xb" title="Abre la evolución histórica">${icon("History",2.2)}historia</span>`:""}</span><span class="lb">${n.depth===0?n.t:n.s}</span></div>${n.kids.length?`<div class="cnt"><span>${n.kids.length}</span>${icon("ChevronLeft",2.4)}</div>`:""}`;
   e.title=n.t; n.el=e; world.appendChild(e);
   if(n.depth===0) e.classList.add("on");
   e.addEventListener("click",ev=>{ ev.stopPropagation(); if(moved) return;
@@ -804,6 +832,8 @@ all.forEach(n=>{
     const d = srcIsChild ? `M${cx} ${cy}C${cx+kk} ${cy} ${px-kk} ${py} ${px-2} ${py}` : `M${px} ${py}C${px-kk} ${py} ${cx+kk} ${cy} ${cx+2} ${cy}`;
     const mkp=(cls,pl)=>{ const el=document.createElementNS(NS,"path"); el.setAttribute("class",cls); el.setAttribute("d",d); if(pl) el.setAttribute("pathLength","1"); el.style.setProperty("--c",n.color); LK.appendChild(el); return el; };
     n.base=mkp("base",true); n.flow=mkp("flow",false); n.trav=mkp("trav",true);
+    n.base.id="tp"+n.id;
+    n.arrow=mkDot(d,n.color,false);
     if(hasArrow) n.base.setAttribute("marker-end","url(#xa)"); else n.flow.style.display="none";
     n.srcIsChild=srcIsChild;
   }});
@@ -819,14 +849,19 @@ xedges.forEach((x,ix)=>{
   LK.querySelector("defs").insertAdjacentHTML("beforeend",`<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${sx}" y1="${sy}" x2="${tx}" y2="${ty}"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>`);
   const p=document.createElementNS(NS,"path"); p.setAttribute("class","xl"+(x.e.fb?" fb":"")); p.setAttribute("d",d); p.setAttribute("stroke",`url(#${gid})`); if(x.dir) p.setAttribute("marker-end","url(#xa)"); LK.appendChild(p); x.p=p;
   const t=document.createElementNS(NS,"path"); t.setAttribute("class","xt"); t.setAttribute("d",d); t.setAttribute("pathLength","1"); LK.appendChild(t); x.tr=t;
+  p.id="xp"+ix;
+  x.pt=mkDot(d,"#fff",true);
+  if(x.e.fb){ const L=p.getTotalLength(), m=p.getPointAtLength(L/2), g=document.createElementNS(NS,"g"); g.setAttribute("class","fbb"); g.setAttribute("transform",`translate(${m.x-11} ${m.y-11})`);
+    const ic=(lucide.icons.Repeat||[0,0,[]])[2].map(([t,a])=>`<${t} ${Object.entries(a).map(([k,v])=>`${k}="${v}"`).join(" ")}/>`).join("");
+    g.innerHTML=`<circle class="ring" cx="11" cy="11" r="11"/><circle cx="11" cy="11" r="11"/><g class="spin"><svg x="4" y="4" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ic}</svg></g>`; LK.appendChild(g); x.fbb=g; }
   const hp=document.createElementNS(NS,"path"); hp.setAttribute("class","xh"); hp.setAttribute("d",d); LK.appendChild(hp); x.h=hp;
   hp.addEventListener("mouseenter",ev=>xHover(x,ev)); hp.addEventListener("mousemove",ev=>xHover(x,ev)); hp.addEventListener("mouseleave",()=>xHover(null));
 });function lineageTree(n){ const s=new Set(); for(let p=n;p;p=p.parent) s.add(p); (function dn(m){ m.kids.forEach(k=>{ if(k.vis){ s.add(k); dn(k); } }); })(n); return s; }
 function focusLine(n){
-  if(!n){ all.forEach(m=>{ m.el.classList.remove("dim"); if(m.base) [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.remove("dimL")); }); xedges.forEach(x=>x.p.classList.remove("dimL","hot")); return; }
+  if(!n){ all.forEach(m=>{ m.el.classList.remove("dim"); if(m.base) [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.remove("dimL")); }); xedges.forEach(x=>{ x.p.classList.remove("dimL","hot"); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimL")); }); return; }
   const lt=lineageTree(n), s=new Set(lt); n.xs.forEach(x=>{ s.add(x.s); s.add(x.t); });
   all.forEach(m=>{ m.el.classList.toggle("dim",!s.has(m)&&m.vis); if(m.base){ const dm=!(lt.has(m)&&lt.has(m.parent)); [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.toggle("dimL",dm)); } });
-  xedges.forEach(x=>{ const mine=x.s===n||x.t===n; x.p.classList.toggle("hot",mine); x.p.classList.toggle("dimL",!mine); });
+  xedges.forEach(x=>{ const mine=x.s===n||x.t===n; x.p.classList.toggle("hot",mine); x.p.classList.toggle("dimL",!mine); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimL",!mine)); });
 }
 
 /* ============ MÓVIL: lista vertical desplegable ============ */
@@ -1214,12 +1249,12 @@ function showRelTags(n){
     const t=document.createElement("div"); t.className="rtag"; t.style.setProperty("--c",o.color); t.style.left=o.x+"px"; t.style.top=(o.y-o.h/2-32)+"px"; t.innerHTML=icon(ic,2.2)+txt; world.appendChild(t); });
 }
 function applySelFocus(){
-  const n=sel; all.forEach(m=>m.el.classList.remove("dimS")); xedges.forEach(x=>x.p.classList.remove("sel","dimS"));
+  const n=sel; all.forEach(m=>m.el.classList.remove("dimS")); xedges.forEach(x=>{ x.p.classList.remove("sel","dimS"); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimS")); });
   if(!n||!n.xs.length||isMobile()) return;
   const xv=n.xs.filter(x=>x.s.vis&&x.t.vis); if(!xv.length) return;
   const keep=new Set([n,n.parent,...n.kids,...n.xs.map(x=>x.s===n?x.t:x.s)]);
   all.forEach(m=>{ if(m.vis&&!keep.has(m)) m.el.classList.add("dimS"); });
-  xedges.forEach(x=>{ const mine=xv.includes(x); x.p.classList.toggle("sel",mine); x.p.classList.toggle("dimS",!mine); });
+  xedges.forEach(x=>{ const mine=xv.includes(x); x.p.classList.toggle("sel",mine); x.p.classList.toggle("dimS",!mine); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimS",!mine)); });
 }
 function focusOn(n){
   if(isMobile()) return;
