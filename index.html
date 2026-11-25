@@ -54,6 +54,12 @@
   @keyframes trav{from{stroke-dashoffset:.16}to{stroke-dashoffset:-1}}
   @keyframes travr{from{stroke-dashoffset:-1}to{stroke-dashoffset:.16}}
   .dimL{opacity:.07!important}
+  body:not(.xall) .xl.tr:not(.sel):not(.hot){opacity:0!important}
+  body:not(.xall) .pg.x.tr:not(.lit){opacity:0!important}
+  body:not(.xall) .xh.tr{pointer-events:none}
+  .xl.fb.on{opacity:.55}
+  #xTog{margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:32px;border-radius:9px;border:1px solid var(--line2);background:#0b0b0b;color:#ddd;font:500 11.5px var(--sans);cursor:pointer}
+  #xTog svg{width:14px;height:14px}#xTog.on{background:#fff;color:#000;border-color:#fff}
   /* partículas que viajan de la causa al efecto (siguen activas aunque la red esté completa) */
   #pts{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
   .pg{position:absolute;left:0;top:0;opacity:0;transition:opacity .4s calc(var(--dl,0s) + .7s)}
@@ -149,7 +155,7 @@
   .lb{font:500 13.5px/1.17 var(--sans);color:var(--fg)}
   .cnt{position:relative;z-index:1;margin-left:auto;flex:none;display:flex;align-items:center;gap:3px;height:26px;padding:0 6px 0 9px;border-radius:13px;background:#000;border:1px solid var(--line2);font:500 11px var(--mono);color:var(--mut)}
   .cnt svg{width:13px;height:13px;transition:transform .25s}
-  .node.open .cnt svg{transform:rotate(-90deg)}
+  .node.open .cnt svg{transform:rotate(90deg)}
   .node.open .cnt{color:var(--c);border-color:color-mix(in srgb,var(--c) 55%,#000)}
 
   .node.d1{background:var(--c);border-color:var(--c);color:var(--ink)}
@@ -745,7 +751,7 @@ function prep(n,parent,depth,code,color){
 prep(DATA,null,0,"",P.root);
 DATA.color=P.root;
 const KK=Object.fromEntries(all.map(n=>[n.key,n]));
-all.forEach(n=>{ n.x=-(COLX[n.depth]+WID[n.depth]); n.w=WID[n.depth]; n.h=HEI[n.depth]; n.y=(n.row-DATA.row)*PITCH; n.desc=0; n.gr=K[n.key]; n.groups=K[n.key].groups; n.bridge=n.groups.filter(g=>g>0).length>1; });
+all.forEach(n=>{ n.x=COLX[n.depth]; n.w=WID[n.depth]; n.h=HEI[n.depth]; n.y=(n.row-DATA.row)*PITCH; n.desc=0; n.gr=K[n.key]; n.groups=K[n.key].groups; n.bridge=n.groups.filter(g=>g>0).length>1; });
 all.forEach(n=>{ for(let p=n.parent;p;p=p.parent) p.desc++; });
 const branches=DATA.kids;
 const descendants=n=>{ const o=[]; (function r(m){ m.kids.forEach(k=>{ o.push(k); r(k); }); })(n); return o; };
@@ -823,10 +829,10 @@ all.forEach(n=>{
   e.className=`node d${Math.min(n.depth,2)}${n.bridge?" bridge":""}${n.kids.length?" has":""}`; e.style.setProperty("--c",n.color); e.style.setProperty("--ink",ink(n.color));
   if(n.bridge){ const o=n.groups.filter(g=>g>0&&G[g].color!==n.color)[0]; e.style.setProperty("--c2",o?G[o].color:n.color); }
   e.style.width=n.w+"px"; e.style.height=n.h+"px"; e.style.left=n.x+"px"; e.style.top=(n.y-n.h/2)+"px";
-  const p=n.parent||n; e.style.setProperty("--dx",(n.parent?p.x-(n.x+n.w):0)+"px"); e.style.setProperty("--dy",(p.y-n.y)+"px");
+  const p=n.parent||n; e.style.setProperty("--dx",(n.parent?p.x+p.w-n.x:0)+"px"); e.style.setProperty("--dy",(p.y-n.y)+"px");
   const xb=n.xs.length?`<span class="xb" title="Conexiones con otras ramas">${icon("ArrowLeftRight",2.4)}${n.xs.length}</span>`:"";
   e.style.setProperty("--wd",((7-n.depth)*.32).toFixed(2)+"s");
-  e.innerHTML=`<div class="wv"></div><div class="glare"></div><div class="wm">${icon(n.i,1.2)}</div><div class="tile">${icon(n.i)}</div><div class="txt"><span class="id">${n.depth===0?"FENÓMENO CENTRAL":"VAR "+n.code}${xb}${n.key==="hig"?`<span class="xb" title="Abre la evolución histórica">${icon("History",2.2)}historia</span>`:""}</span><span class="lb">${n.depth===0?n.t:n.s}</span></div>${n.kids.length?`<div class="cnt"><span>${n.kids.length}</span>${icon("ChevronLeft",2.4)}</div>`:""}`;
+  e.innerHTML=`<div class="wv"></div><div class="glare"></div><div class="wm">${icon(n.i,1.2)}</div><div class="tile">${icon(n.i)}</div><div class="txt"><span class="id">${n.depth===0?"FENÓMENO CENTRAL":"VAR "+n.code}${xb}${n.key==="hig"?`<span class="xb" title="Abre la evolución histórica">${icon("History",2.2)}historia</span>`:""}</span><span class="lb">${n.depth===0?n.t:n.s}</span></div>${n.kids.length?`<div class="cnt"><span>${n.kids.length}</span>${icon("ChevronRight",2.4)}</div>`:""}`;
   e.title=n.t; n.el=e; world.appendChild(e);
   if(n.depth===0) e.classList.add("on");
   e.addEventListener("click",ev=>{ ev.stopPropagation(); if(moved) return;
@@ -839,9 +845,9 @@ all.forEach(n=>{
   e.addEventListener("mousemove",ev=>{ const r=e.getBoundingClientRect(); e.style.setProperty("--mx",((ev.clientX-r.left)/T.k)+"px"); e.style.setProperty("--my",((ev.clientY-r.top)/T.k)+"px"); });
   if(n.parent){
     const te=treeEdge.get(n.key), kc=p.kids.length, ic=p.kids.indexOf(n);
-    const spread=Math.min(p.h-26,20*(kc-1)), py=p.y+(kc>1?(ic/(kc-1)-.5)*spread:0), px=p.x, cx=n.x+n.w, cy=n.y;
-    const srcIsChild=!!te&&te.dir&&te.a.key===n.key, hasArrow=!!te&&te.dir, kk=Math.max(46,(px-cx)*.5);
-    const d = srcIsChild ? `M${cx} ${cy}C${cx+kk} ${cy} ${px-kk} ${py} ${px-2} ${py}` : `M${px} ${py}C${px-kk} ${py} ${cx+kk} ${cy} ${cx+2} ${cy}`;
+    const spread=Math.min(p.h-26,20*(kc-1)), py=p.y+(kc>1?(ic/(kc-1)-.5)*spread:0), px=p.x+p.w, cx=n.x, cy=n.y;
+    const srcIsChild=!!te&&te.dir&&te.a.key===n.key, hasArrow=!!te&&te.dir, kk=Math.max(46,(cx-px)*.5);
+    const d = srcIsChild ? `M${cx} ${cy}C${cx-kk} ${cy} ${px+kk} ${py} ${px+2} ${py}` : `M${px} ${py}C${px+kk} ${py} ${cx-kk} ${cy} ${cx-2} ${cy}`;
     const mkp=(cls,pl)=>{ const el=document.createElementNS(NS,"path"); el.setAttribute("class",cls); el.setAttribute("d",d); if(pl) el.setAttribute("pathLength","1"); el.style.setProperty("--c",n.color); LK.appendChild(el); return el; };
     n.base=mkp("base",true); n.flow=mkp("flow",false); n.trav=mkp("trav",true);
     n.base.id="tp"+n.id;
@@ -865,17 +871,18 @@ xedges.forEach((x,ix)=>{
   const t=document.createElementNS(NS,"path"); t.setAttribute("class","xt"); t.setAttribute("d",d); t.setAttribute("pathLength","1"); LK.appendChild(t); x.tr=t;
   p.id="xp"+ix;
   x.pt=mkDot(d,"#fff",true);
+  if(!x.e.fb){ p.classList.add("tr"); x.pt.classList.add("tr"); }
   if(x.e.fb){ const L=p.getTotalLength(), m=p.getPointAtLength(L/2), g=document.createElementNS(NS,"g"); g.setAttribute("class","fbb"); g.setAttribute("transform",`translate(${m.x-11} ${m.y-11})`);
     const ic=(lucide.icons.Repeat||[0,0,[]])[2].map(([t,a])=>`<${t} ${Object.entries(a).map(([k,v])=>`${k}="${v}"`).join(" ")}/>`).join("");
     g.innerHTML=`<circle class="ring" cx="11" cy="11" r="11"/><circle cx="11" cy="11" r="11"/><g class="spin"><svg x="4" y="4" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ic}</svg></g>`; LK.appendChild(g); x.fbb=g; }
-  const hp=document.createElementNS(NS,"path"); hp.setAttribute("class","xh"); hp.setAttribute("d",d); LK.appendChild(hp); x.h=hp;
+  const hp=document.createElementNS(NS,"path"); hp.setAttribute("class","xh"+(x.e.fb?"":" tr")); hp.setAttribute("d",d); LK.appendChild(hp); x.h=hp;
   hp.addEventListener("mouseenter",ev=>xHover(x,ev)); hp.addEventListener("mousemove",ev=>xHover(x,ev)); hp.addEventListener("mouseleave",()=>xHover(null));
 });function lineageTree(n){ const s=new Set(); for(let p=n;p;p=p.parent) s.add(p); (function dn(m){ m.kids.forEach(k=>{ if(k.vis){ s.add(k); dn(k); } }); })(n); return s; }
 function focusLine(n){
-  if(!n){ all.forEach(m=>{ m.el.classList.remove("dim"); if(m.base) [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.remove("dimL")); }); xedges.forEach(x=>{ x.p.classList.remove("dimL","hot"); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimL")); }); return; }
+  if(!n){ all.forEach(m=>{ m.el.classList.remove("dim"); if(m.base) [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.remove("dimL")); }); xedges.forEach(x=>{ x.p.classList.remove("dimL","hot"); x.pt.classList.toggle("lit",x.p.classList.contains("sel")); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimL")); }); return; }
   const lt=lineageTree(n), s=new Set(lt); n.xs.forEach(x=>{ s.add(x.s); s.add(x.t); });
   all.forEach(m=>{ m.el.classList.toggle("dim",!s.has(m)&&m.vis); if(m.base){ const dm=!(lt.has(m)&&lt.has(m.parent)); [m.base,m.flow,m.arrow].forEach(x=>x&&x.classList.toggle("dimL",dm)); } });
-  xedges.forEach(x=>{ const mine=x.s===n||x.t===n; x.p.classList.toggle("hot",mine); x.p.classList.toggle("dimL",!mine); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimL",!mine)); });
+  xedges.forEach(x=>{ const mine=x.s===n||x.t===n; x.p.classList.toggle("hot",mine); x.p.classList.toggle("dimL",!mine); x.pt.classList.toggle("lit",mine||x.p.classList.contains("sel")); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimL",!mine)); });
 }
 
 /* ============ MÓVIL: lista vertical desplegable ============ */
@@ -1265,12 +1272,12 @@ function showRelTags(n){
     const t=document.createElement("div"); t.className="rtag"; t.style.setProperty("--c",o.color); t.style.left=o.x+"px"; t.style.top=(o.y-o.h/2-32)+"px"; t.innerHTML=icon(ic,2.2)+txt; world.appendChild(t); });
 }
 function applySelFocus(){
-  const n=sel; all.forEach(m=>m.el.classList.remove("dimS")); xedges.forEach(x=>{ x.p.classList.remove("sel","dimS"); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimS")); });
+  const n=sel; all.forEach(m=>m.el.classList.remove("dimS")); xedges.forEach(x=>{ x.p.classList.remove("sel","dimS"); x.pt.classList.remove("lit"); [x.pt,x.fbb].forEach(el=>el&&el.classList.remove("dimS")); });
   if(!n||!n.xs.length||isMobile()) return;
   const xv=n.xs.filter(x=>x.s.vis&&x.t.vis); if(!xv.length) return;
   const keep=new Set([n,n.parent,...n.kids,...n.xs.map(x=>x.s===n?x.t:x.s)]);
   all.forEach(m=>{ if(m.vis&&!keep.has(m)) m.el.classList.add("dimS"); });
-  xedges.forEach(x=>{ const mine=xv.includes(x); x.p.classList.toggle("sel",mine); x.p.classList.toggle("dimS",!mine); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimS",!mine)); });
+  xedges.forEach(x=>{ const mine=xv.includes(x); x.p.classList.toggle("sel",mine); x.pt.classList.toggle("lit",mine); x.p.classList.toggle("dimS",!mine); [x.pt,x.fbb].forEach(el=>el&&el.classList.toggle("dimS",!mine)); });
 }
 function focusOn(n){
   if(isMobile()) return;
@@ -1301,10 +1308,12 @@ $("#legend").innerHTML=`<h4>${icon("Layers",2)}Ramas del sistema</h4>`+branches.
   `<h4>${icon("Network",2)}Cómo leer el mapa</h4>
    <div class="key"><svg viewBox="0 0 34 14"><path d="M1 7H27" stroke="${G[1].color}" stroke-width="2.4" stroke-linecap="round"/><path d="M25 2L33 7L25 12z" fill="${G[1].color}"/></svg>Causa → efecto</div>
    <div class="key"><svg viewBox="0 0 34 14"><path d="M1 7C9 13 19 1 27 7" stroke="#fff" stroke-width="2.4" stroke-dasharray="1.5 4" fill="none" stroke-linecap="round"/><path d="M25 2L33 7L25 12z" fill="#fff"/></svg>Retroalimentación</div>
-   <div class="key" style="opacity:.8"><svg viewBox="0 0 34 14"><path d="M33 7H9" stroke="#9a9a9a" stroke-width="1.6"/><path d="M5 2L1 7L5 12" stroke="#9a9a9a" stroke-width="1.6" fill="none"/></svg>Causas profundas a la izquierda</div>
-   <div class="key"><svg viewBox="0 0 34 14"><path d="M1 7C9 1 19 13 27 7" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" fill="none" stroke-linecap="round"/><path d="M25 2L33 7L25 12z" fill="#fff"/></svg>Relación transversal</div>
+   <div class="key" style="opacity:.8"><svg viewBox="0 0 34 14"><path d="M1 7H25" stroke="#9a9a9a" stroke-width="1.6"/><path d="M29 2L33 7L29 12" stroke="#9a9a9a" stroke-width="1.6" fill="none"/></svg>Se abre hacia las causas →</div>
+   <div class="key"><svg viewBox="0 0 34 14"><path d="M1 7C9 1 19 13 27 7" stroke="#fff" stroke-width="2" stroke-dasharray="4 4" fill="none" stroke-linecap="round"/><path d="M25 2L33 7L25 12z" fill="#fff"/></svg>Relación transversal (pasa el cursor sobre una variable)</div>
    <div class="key"><svg viewBox="0 0 34 14"><rect x="9" y="1" width="6" height="12" rx="2" fill="${G[1].color}"/><rect x="15" y="1" width="6" height="12" rx="2" fill="${G[3].color}"/></svg>Variable compartida</div>
+   <button id="xTog">${icon("ArrowLeftRight",2)}<span>Ver todas las relaciones transversales</span></button>
    <div id="stat"><div><b id="sN">1/56</b><span>Variables</span></div><div><b id="sX">0/${xedges.length}</b><span>Transversales y ciclos</span></div></div>`;
+$("#xTog").onclick=e=>{ e.stopPropagation(); const on=document.body.classList.toggle("xall"); $("#xTog").classList.toggle("on",on); $("#xTog span").textContent=on?"Ocultar relaciones transversales":"Ver todas las relaciones transversales"; };
 $("#legend").insertAdjacentHTML("afterbegin",`<button class="lt" aria-label="Leyenda" title="Ver / ocultar leyenda">${icon("Info",2)}</button>`);
 $("#legend .lt").onclick=()=>$("#legend").classList.toggle("open");
 $("#legend").querySelectorAll(".li").forEach(l=>l.addEventListener("click",()=>{ const b=all[+l.dataset.i]; DATA.open=true; b.open=true; hideHints(); refresh(b); reveal([DATA,b,...b.kids]); select(b); }));
